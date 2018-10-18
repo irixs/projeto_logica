@@ -1,49 +1,171 @@
-package projetoLogica;
-
+package projeto_logica;
+ 
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Scanner;
-
+ 
 public class ProjetoLogica {
-
-	public static void main(String[] args) {
-		Scanner in = new Scanner(System.in);
-		int n = in.nextInt();
-		
-		for (int q = 0; q < n; q++) {
-			String expressaoValoracao = in.nextLine();
-			//aqui eu vou receber uma entrada que pode ser de dois tipos:
-			//expressão valoração-verdade
-			//{expressão_1, expressão_2, ..., expressão_n} valoração-verdade
-			
+    public static void main(String[] args) throws IOException {
+        try {
+            Scanner in = new Scanner(new FileReader("Entrada.in"));
+            FileWriter out = new FileWriter("Saida.out");
+            Map<Character, Boolean> valoresverdade = new HashMap<>();
+           
+            int n = in.nextInt(); // pega o numero de linhas
+           
+            for (int q = 1; q <= n; q++) { // lê todas as linhas
+               
+                out.write("Problema #" + q + "\n");
+                String eV = in.nextLine();
+                int i;
+               
+                for (i = 0; i < eV.length() && // separa a expressao da valoração
+                    (eV.charAt(i) != '1' || eV.charAt(i) != '0'); i++) {
+                }
+                String expressao = eV.substring(0, i - 1);
+                String valoracao = eV.substring(i, eV.length() - 1);
+ 
+                String[] valoracoesAux = valoracao.split(" "); // faz um array de int com as valorações
+                boolean[] valoracoes = new boolean[valoracoesAux.length];
+                char[] variaveis = new char[valoracoesAux.length];
+               
+                for (int u = 0; u < valoracoes.length; u++) {
+                	int aux = Integer.parseInt(valoracoesAux[u]);
+                	if(aux == 0){
+                		valoracoes[u] = true;
+                		}
+                		else{
+                		valoracoes[u] = false;
+                		}
+                }  
+                for (int o = 0; o < expressao.length(); o++) { //fazer correspondencia das variaveis e sua valoração
+                    if (expressao.charAt(o) >= 'A' && expressao.charAt(o) <= 'Z' ) {
+                        int indexA = 0;
+                        if (funcaoA(expressao.charAt(o), variaveis, indexA)) {
+                        	variaveis[indexA] = expressao.charAt(o);
+                        	valoresverdade.put(variaveis[indexA], valoracoes[indexA]);
+                        	indexA++; //só tenho que ver se da merda nessa funçao comparar um char com o array vazio
+                        }
+                    }
+                }
+                if (expressao.charAt(0) == '{') { // Conjunto de expressões
+                    String splitarExpressoes = expressao.substring(1, expressao.length() - 2);
+                    String[] expressoes = splitarExpressoes.split(",");
+                   
+                    for (int h = 0; h < expressoes.length; h++) {
+                    	boolean legit = isLegit(expressoes[h]);
+                    	if (!legit) {
+                    		out.write("Ha uma palavra nao legitima no conjunto.​\n");
+                    		h = expressoes.length;
+                    	}
+                    	else {
+                    		boolean satisfaz = satisfies(valoresverdade, expressoes[h]);
+                    		if (!satisfaz) {
+                    			out.write("A valoracao-verdade nao satisfaz o conjunto.\n");
+                    			h = expressoes.length;
+                    		}
+                    		else if (satisfaz && h == expressoes.length-1) {
+                    			out.write("A valoracao-verdade satisfaz a proposicao.");
+                    		}
+                    	}
+                    }
+                }
+                else { // Apenas uma expressão
+                    boolean legit = isLegit(expressao);
+                    if (!legit) {
+                    	out.write("A palavra nao e legitima.\n");
+                    }
+                    else {
+                        boolean satisfaz = satisfies(valoresverdade, expressao);
+                        if (satisfaz) {
+                        	out.write("A valoracao-verdade satisfaz a proposicao.\n");
+                        }
+                        else {
+                        	out.write("A valoracao-verdade nao satisfaz a proposicao.\n");
+                        }
+                    }
+                }
+            }
+            out.close();
+            in.close();
+        } catch (IOException e) {
+        }
+    }
+    
+    static boolean funcaoA(char charAt, char[] variaveis, int indexA) {
+		if (variaveis.length-1 == indexA && variaveis[indexA] != charAt) {
+			return true;
 		}
-		//------ SAIDA -------
-		//Para o n-ésimo caso (n >= 1), seu programa deve imprimir Problema #n​.
-		//Cada caso deve ser separado por uma linha em branco.
-		
-		/*Para entradas no 1o formato:
-			● Se a expressão não for legítima, seu programa deve imprimir “A palavra nao e legitima.​”
-			● Se a valoração-verdade satisfaz a expressão, seu programa deve imprimir “A
-			valoracao-verdade satisfaz a proposicao.”
-			● Se a valoração-verdade refuta a expressão, seu programa deve imprimir “A
-			valoracao-verdade nao satisfaz a proposicao.” */
-		
-		/*Para entradas no 2o formato:
-			● Se o conjunto contiver alguma expressão não-legítima, seu programa deve imprimir “Ha
-			uma palavra nao legitima no conjunto.​”
-			● Se a valoração-verdade satisfaz o conjunto, seu programa deve imprimir “A
-			valoracao-verdade satisfaz o conjunto.”
-			● Se a valoração-verdade não satisfaz o conjunto, seu programa deve imprimir “A
-			valoracao-verdade nao satisfaz o conjunto.”*/
+		else if (variaveis[indexA] == charAt) {
+			return false;
+		}
+		return funcaoA(charAt, variaveis, indexA+1);
 	}
-
+    
+	static boolean isLegit(String exp) {
+        if (exp.length() == 1 && exp.charAt(0) >= 'A' && exp.charAt(0) <= 'Z')
+            return true;
+ 
+        int s = 0;
+        int f = exp.length() - 1;
+ 
+        if (exp.charAt(s) == '(' && exp.charAt(f) == ')'
+            && exp.charAt(s + 1) == '~' && s + 2 < f)
+            return isLegit(exp.substring(s + 2, f));
+ 
+        else if (exp.charAt(s) == '(' && exp.charAt(f) == ')') {
+            int operatorIndex = findOperator(exp);
+            if (operatorIndex != -1)
+                return isLegit(exp.substring(s + 1, operatorIndex - 1))
+                        && isLegit(exp.substring(operatorIndex + 2, f));
+        }
+ 
+        return false;
+    }
+ 
+    static int findOperator(String exp) {
+        int numParenthesis = 0;
+        for (int i = 0; i < exp.length(); i++) {
+ 
+            if (exp.charAt(i) == '(')
+                numParenthesis++;
+            else if (exp.charAt(i) == ')')
+                numParenthesis--;
+ 
+            if ((exp.charAt(i) == '>' || exp.charAt(i) == '&'
+                || exp.charAt(i) == 'v') && numParenthesis == 1)
+                return i;
+        }
+ 
+        return -1;
+    }
+ 
+    static boolean satisfies(Map<Character, Boolean> valoresverdade, String exp) {
+ 
+        if (exp.length() == 1)
+            return valoresverdade.get(exp.charAt(0));
+ 
+        int s = 0;
+        int f = exp.length() - 1;
+        int operatorIndex = findOperator(exp);
+        switch (exp.charAt(operatorIndex)) {
+ 
+        case '~':
+            return !satisfies(valoresverdade, exp.substring(operatorIndex + 1, f));
+        case '&':
+            return satisfies(valoresverdade, exp.substring(s + 1, operatorIndex - 1))
+                    && satisfies(valoresverdade, exp.substring(operatorIndex + 2, f));
+        case 'v':
+            return satisfies(valoresverdade, exp.substring(s + 1, operatorIndex - 1))
+                    || satisfies(valoresverdade, exp.substring(operatorIndex + 2, f));
+        case '>':
+            return !satisfies(valoresverdade, exp.substring(s + 1, operatorIndex - 1))
+                    || satisfies(valoresverdade, exp.substring(operatorIndex + 2, f));
+        default:
+            return true;
+        }
+    }
 }
-//As variáveis podem ser representadas por qualquer uma das 26 letras do alfabeto (maiúsculas).
-//Para os operadores, são usados os seguintes: negação ​(~), conjunção ​(&), disjunção ​(v) e implicação ​(>).
-
-
-//------------ COISAS IMPORTANTES ------------
-
-/* ● Para determinar se uma expressão é legítima ou não, é obrigatório o uso da definição
-indutiva de PROP (<EXPR>)​.
-   ● Para determinar o valor-verdade de uma expressão, é obrigatório o uso da função de
-valoração-verdade, definida pelo Teorema da Extensão Homomórfica Única.
-   ● O formato da saída deve ser estritamente seguido. */
